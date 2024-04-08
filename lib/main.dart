@@ -5,19 +5,29 @@ class Recipe {
   final int id;
   final String name;
   final String image;
+  final List<String> tags;
   final List<String> ingredients;
   final List<String> instructions;
-  final List<String> tags;
+  final List<String> mealType;
   bool isFavorite;
+  final int prepTimeMinutes;
+  final int cookTimeMinutes;
+  final int servings;
+  final String difficulty;
 
   Recipe({
     required this.id,
     required this.name,
     required this.image,
+    required this.tags,
     required this.ingredients,
     required this.instructions,
-    required this.tags,
+    required this.mealType,
     this.isFavorite = false, // Default to false
+    required this.prepTimeMinutes,
+    required this.cookTimeMinutes,
+    required this.servings,
+    required this.difficulty,
   });
 
   factory Recipe.fromJson(Map<String, dynamic> json) {
@@ -25,9 +35,14 @@ class Recipe {
       id: json['id'],
       name: json['name'],
       image: json['image'],
+      tags: List<String>.from(json['tags']),
       ingredients: List<String>.from(json['ingredients']),
       instructions: List<String>.from(json['instructions']),
-      tags: List<String>.from(json['tags']),
+      mealType: List<String>.from(json['mealType']),
+      prepTimeMinutes: json['prepTimeMinutes'],
+      cookTimeMinutes: json['cookTimeMinutes'],
+      servings: json['servings'],
+      difficulty: json['difficulty'],
     );
   }
 }
@@ -55,7 +70,6 @@ class _RecipeListScreenState extends State<RecipeListScreen> {
   late List<Recipe> recipes;
   Set<int> favorites = Set<int>();
   String? selectedMealType;
-  String? selectedTag;
 
   @override
   void initState() {
@@ -100,6 +114,15 @@ class _RecipeListScreenState extends State<RecipeListScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisSize: MainAxisSize.min,
             children: [
+              Text('Prep Time: ${recipe.prepTimeMinutes} minutes',
+                  style: TextStyle(fontWeight: FontWeight.bold)),
+              Text('Cook Time: ${recipe.cookTimeMinutes} minutes',
+                  style: TextStyle(fontWeight: FontWeight.bold)),
+              Text('Servings: ${recipe.servings}',
+                  style: TextStyle(fontWeight: FontWeight.bold)),
+              Text('Difficulty: ${recipe.difficulty}',
+                  style: TextStyle(fontWeight: FontWeight.bold)),
+              SizedBox(height: 10),
               Text('Ingredients:',
                   style: TextStyle(fontWeight: FontWeight.bold)),
               for (String ingredient in recipe.ingredients) Text(ingredient),
@@ -110,17 +133,11 @@ class _RecipeListScreenState extends State<RecipeListScreen> {
                 Text('${i + 1}. ${recipe.instructions[i]}'),
               SizedBox(height: 10),
               Text('Tags:', style: TextStyle(fontWeight: FontWeight.bold)),
+              SizedBox(height: 5),
               Wrap(
                 spacing: 8.0,
-                children: recipe.tags.map((tag) {
-                  return GestureDetector(
-                    onTap: () {
-                      Navigator.pop(context); // Close the current dialog
-                      _filterByTag(tag); // Filter recipes by the selected tag
-                    },
-                    child: Chip(label: Text(tag)),
-                  );
-                }).toList(),
+                children:
+                    recipe.tags.map((tag) => Chip(label: Text(tag))).toList(),
               ),
             ],
           ),
@@ -152,63 +169,71 @@ class _RecipeListScreenState extends State<RecipeListScreen> {
     });
   }
 
-  void _filterByTag(String tag) {
-    setState(() {
-      selectedTag = tag;
-    });
-  }
-
-  void _clearFilters() {
-    setState(() {
-      selectedMealType = null;
-      selectedTag = null;
-    });
-  }
+  // void _filterByMealType(String? mealType) {
+  //   setState(() {
+  //     selectedMealType = mealType;
+  //   });
+  // }
 
   @override
   Widget build(BuildContext context) {
     List<Recipe> filteredRecipes = recipes.where((recipe) {
-      if (selectedMealType != null && !recipe.tags.contains(selectedMealType)) {
-        return false;
-      }
-      if (selectedTag != null && !recipe.tags.contains(selectedTag)) {
-        return false;
-      }
-      return true;
+      if (selectedMealType == null) return true;
+      return recipe.mealType.contains(selectedMealType);
     }).toList();
 
     return Scaffold(
       appBar: AppBar(
-        title: Text('Recipes'),
+        title: Text('Recipes',
+            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 32)),
+        actions: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(0, 8, 8, 0),
+            child: FloatingActionButton(
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                      builder: (context) => FavoritesScreen(
+                          favorites: favorites, recipes: recipes)),
+                );
+              },
+              child: Icon(Icons.favorite),
+              elevation: 0, // Remove elevation for consistency
+            ),
+          ),
+        ],
       ),
+      // ignore: unnecessary_null_comparison
       body: recipes == null
           ? Center(
               child: CircularProgressIndicator(),
             )
           : Column(
               children: [
-                DropdownButton<String>(
-                  value: selectedMealType,
-                  hint: Text('Select Meal Type'),
-                  onChanged: (value) {
-                    setState(() {
-                      selectedMealType = value;
-                    });
-                  },
-                  items: ['All', 'Breakfast', 'Lunch', 'Dinner', 'Snack']
-                      .map((mealType) {
-                    return DropdownMenuItem<String>(
-                      value: mealType == 'All' ? null : mealType,
-                      child: Text(mealType),
-                    );
-                  }).toList(),
-                ),
-                ElevatedButton(
-                  child: Text('Clear Filters'),
-                  // icon: Icon(Icons.clear),
-                  onPressed: () {
-                    _clearFilters();
-                  },
+                // Padding(padding: EdgeInsets.all(8.0)),
+                Row(
+                  children: [
+                    SizedBox(width: 15.0),
+                    Text('Filter by meal type:'),
+                    SizedBox(width: 16.0),
+                    DropdownButton<String>(
+                      value: selectedMealType,
+                      hint: Text('Select Meal Type'),
+                      onChanged: (value) {
+                        setState(() {
+                          selectedMealType = value;
+                        });
+                      },
+                      items: ['All', 'Breakfast', 'Lunch', 'Dinner', 'Snack']
+                          .map((mealType) {
+                        return DropdownMenuItem<String>(
+                          value: mealType == 'All' ? null : mealType,
+                          child: Text(mealType),
+                        );
+                      }).toList(),
+                    ),
+                  ],
                 ),
                 Expanded(
                   child: ListView.builder(
@@ -251,32 +276,6 @@ class _RecipeListScreenState extends State<RecipeListScreen> {
                 ),
               ],
             ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-                builder: (context) =>
-                    FavoritesScreen(favorites: favorites, recipes: recipes)),
-          );
-        },
-        child: Icon(Icons.favorite),
-      ),
-      floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
-      floatingActionButtonAnimator: FloatingActionButtonAnimator.scaling,
-      // bottomNavigationBar: BottomAppBar(
-      //   child: Row(
-      //     mainAxisAlignment: MainAxisAlignment.end,
-      //     children: [
-      //       IconButton(
-      //         icon: Icon(Icons.clear),
-      //         onPressed: () {
-      //           _clearFilters();
-      //         },
-      //       ),
-      //     ],
-      //   ),
-      // ),
     );
   }
 }
@@ -294,7 +293,7 @@ class FavoritesScreen extends StatelessWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text('Favorites'),
+        title: Text('Favorites', style: TextStyle(fontWeight: FontWeight.bold)),
       ),
       body: favoriteRecipes.isEmpty
           ? Center(
@@ -303,17 +302,19 @@ class FavoritesScreen extends StatelessWidget {
           : ListView.builder(
               itemCount: favoriteRecipes.length,
               itemBuilder: (BuildContext context, int index) {
-                return ListTile(
-                  title: Text(favoriteRecipes[index].name),
-                  subtitle: Text('ID: ${favoriteRecipes[index].id}'),
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                          builder: (context) => RecipeDetailsScreen(
-                              recipe: favoriteRecipes[index])),
-                    );
-                  },
+                return Card(
+                  child: ListTile(
+                    title: Text(favoriteRecipes[index].name),
+                    // subtitle: Text('ID: ${favoriteRecipes[index].id}'),
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                            builder: (context) => RecipeDetailsScreen(
+                                recipe: favoriteRecipes[index])),
+                      );
+                    },
+                  ),
                 );
               },
             ),
@@ -337,7 +338,14 @@ class RecipeDetailsScreen extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            if (recipe.image.isNotEmpty) Image.network(recipe.image),
+            Text('Prep Time: ${recipe.prepTimeMinutes} minutes',
+                style: TextStyle(fontWeight: FontWeight.bold)),
+            Text('Cook Time: ${recipe.cookTimeMinutes} minutes',
+                style: TextStyle(fontWeight: FontWeight.bold)),
+            Text('Servings: ${recipe.servings}',
+                style: TextStyle(fontWeight: FontWeight.bold)),
+            Text('Difficulty: ${recipe.difficulty}',
+                style: TextStyle(fontWeight: FontWeight.bold)),
             SizedBox(height: 16.0),
             Text('Ingredients:', style: TextStyle(fontWeight: FontWeight.bold)),
             for (String ingredient in recipe.ingredients) Text(ingredient),
@@ -346,6 +354,8 @@ class RecipeDetailsScreen extends StatelessWidget {
                 style: TextStyle(fontWeight: FontWeight.bold)),
             for (int i = 0; i < recipe.instructions.length; i++)
               Text('${i + 1}. ${recipe.instructions[i]}'),
+            SizedBox(height: 10),
+            if (recipe.image.isNotEmpty) Image.network(recipe.image),
           ],
         ),
       ),

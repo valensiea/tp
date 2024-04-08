@@ -4,7 +4,8 @@ import 'main.dart'; // Importing main.dart to access the Recipe class
 class FavoriteRecipesScreen extends StatelessWidget {
   final List<Recipe> favorites;
 
-  const FavoriteRecipesScreen({Key? key, required this.favorites}) : super(key: key);
+  const FavoriteRecipesScreen({Key? key, required this.favorites})
+      : super(key: key);
 
   @override
   Widget build(BuildContext context) {
@@ -24,7 +25,8 @@ class FavoriteRecipesScreen extends StatelessWidget {
                     title: Text(favorites[index].name),
                     leading: Image.network(
                       favorites[index].image,
-                      errorBuilder: (BuildContext context, Object exception, StackTrace? stackTrace) {
+                      errorBuilder: (BuildContext context, Object exception,
+                          StackTrace? stackTrace) {
                         print('Failed to load image: $exception');
                         return Icon(Icons.error);
                       },
