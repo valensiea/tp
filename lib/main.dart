@@ -56,6 +56,14 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Recipe App',
+      theme: ThemeData(
+        primaryColor: Color(0xFFD2B48C), // Warm Brown
+        scaffoldBackgroundColor: Color(0xFFF5F5DC), // Beige
+        appBarTheme: AppBarTheme(
+          color: Color(0xFFD2B48C), // Warm Brown
+        ),
+        // You can customize more theme elements here
+      ),
       home: RecipeListScreen(),
     );
   }
@@ -70,6 +78,7 @@ class _RecipeListScreenState extends State<RecipeListScreen> {
   late List<Recipe> recipes;
   Set<int> favorites = Set<int>();
   String? selectedMealType;
+  TextEditingController searchController = TextEditingController();
 
   @override
   void initState() {
@@ -104,24 +113,82 @@ class _RecipeListScreenState extends State<RecipeListScreen> {
     }
   }
 
+  List<Recipe> searchRecipes(String query) {
+    return recipes
+        .where(
+            (recipe) => recipe.name.toLowerCase().contains(query.toLowerCase()))
+        .toList();
+  }
+
+  List<Recipe> filterRecipesByMealType(List<Recipe> recipes, String? mealType) {
+    if (mealType == null || mealType == 'All') {
+      return recipes;
+    } else {
+      return recipes
+          .where((recipe) => recipe.mealType.contains(mealType))
+          .toList();
+    }
+  }
+
   void _showRecipeDetails(BuildContext context, Recipe recipe) {
     showDialog(
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
+          backgroundColor: Color(0xFFF5F5DC),
           title: Text(recipe.name),
           content: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text('Prep Time: ${recipe.prepTimeMinutes} minutes',
-                  style: TextStyle(fontWeight: FontWeight.bold)),
-              Text('Cook Time: ${recipe.cookTimeMinutes} minutes',
-                  style: TextStyle(fontWeight: FontWeight.bold)),
-              Text('Servings: ${recipe.servings}',
-                  style: TextStyle(fontWeight: FontWeight.bold)),
-              Text('Difficulty: ${recipe.difficulty}',
-                  style: TextStyle(fontWeight: FontWeight.bold)),
+              Row(
+                children: [
+                  Text(
+                    'Prep Time: ',
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                  Text(
+                    '${recipe.prepTimeMinutes} minutes',
+                    style: TextStyle(fontWeight: FontWeight.normal),
+                  ),
+                ],
+              ),
+              Row(
+                children: [
+                  Text(
+                    'Cook Time: ',
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                  Text(
+                    '${recipe.cookTimeMinutes} minutes',
+                    style: TextStyle(fontWeight: FontWeight.normal),
+                  ),
+                ],
+              ),
+              Row(
+                children: [
+                  Text(
+                    'Servings: ',
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                  Text(
+                    '${recipe.servings}',
+                    style: TextStyle(fontWeight: FontWeight.normal),
+                  ),
+                ],
+              ),
+              Row(
+                children: [
+                  Text(
+                    'Difficulty: ',
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                  Text(
+                    '${recipe.difficulty}',
+                    style: TextStyle(fontWeight: FontWeight.normal),
+                  ),
+                ],
+              ),
               SizedBox(height: 10),
               Text('Ingredients:',
                   style: TextStyle(fontWeight: FontWeight.bold)),
@@ -143,10 +210,14 @@ class _RecipeListScreenState extends State<RecipeListScreen> {
           ),
           actions: <Widget>[
             TextButton(
+              style: TextButton.styleFrom(backgroundColor: Colors.white),
               onPressed: () {
                 Navigator.of(context).pop();
               },
-              child: Text('Close'),
+              child: Text(
+                'Close',
+                style: TextStyle(color: Colors.black),
+              ),
             ),
           ],
         );
@@ -169,71 +240,101 @@ class _RecipeListScreenState extends State<RecipeListScreen> {
     });
   }
 
-  // void _filterByMealType(String? mealType) {
-  //   setState(() {
-  //     selectedMealType = mealType;
-  //   });
-  // }
-
   @override
   Widget build(BuildContext context) {
-    List<Recipe> filteredRecipes = recipes.where((recipe) {
-      if (selectedMealType == null) return true;
-      return recipe.mealType.contains(selectedMealType);
-    }).toList();
+    List<Recipe> filteredRecipes = searchRecipes(searchController.text);
+    filteredRecipes =
+        filterRecipesByMealType(filteredRecipes, selectedMealType);
 
     return Scaffold(
       appBar: AppBar(
-        title: Text('Recipes',
-            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 32)),
-        actions: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(0, 8, 8, 0),
-            child: FloatingActionButton(
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                      builder: (context) => FavoritesScreen(
-                          favorites: favorites, recipes: recipes)),
-                );
-              },
-              child: Icon(Icons.favorite),
-              elevation: 0, // Remove elevation for consistency
+        toolbarHeight: 70,
+        title: Row(
+          children: [
+            Text(
+              'Recipes',
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 32,
+              ),
             ),
+            SizedBox(
+              width: 10,
+            ),
+            Icon(Icons.menu_book),
+          ],
+        ),
+        actions: [
+          DropdownButton<String>(
+            value: selectedMealType,
+            hint: Text('Select Meal Type'),
+            onChanged: (value) {
+              setState(() {
+                selectedMealType = value;
+              });
+            },
+            items: ['All meal', 'Breakfast', 'Lunch', 'Dinner', 'Snack']
+                .map((mealType) {
+              return DropdownMenuItem<String>(
+                value: mealType == 'All meal' ? null : mealType,
+                child: Text(mealType),
+              );
+            }).toList(),
+          ),
+          SizedBox(width: 20),
+          Container(
+            width: 250,
+            // height: 50,
+            child: TextField(
+              controller: searchController,
+              decoration: InputDecoration(
+                labelText: 'Search recipes',
+                prefixIcon: Icon(Icons.search),
+              ),
+              onChanged: (value) {
+                setState(() {});
+              },
+            ),
+          ),
+          SizedBox(
+            width: 20,
+          ),
+          FloatingActionButton(
+            backgroundColor: Color(0xFFFFF8E1),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                    builder: (context) => FavoritesScreen(
+                        favorites: favorites, recipes: recipes)),
+              );
+            },
+            child: Icon(
+              Icons.favorite,
+              color: Colors.red,
+            ),
+            elevation: 0, // Remove elevation for consistency
           ),
         ],
       ),
-      // ignore: unnecessary_null_comparison
       body: recipes == null
           ? Center(
               child: CircularProgressIndicator(),
             )
           : Column(
               children: [
-                // Padding(padding: EdgeInsets.all(8.0)),
                 Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
                   children: [
-                    SizedBox(width: 15.0),
-                    Text('Filter by meal type:'),
+                    // SizedBox(width: 15.0),
+                    // Text('Filter by meal type:'),
                     SizedBox(width: 16.0),
-                    DropdownButton<String>(
-                      value: selectedMealType,
-                      hint: Text('Select Meal Type'),
-                      onChanged: (value) {
-                        setState(() {
-                          selectedMealType = value;
-                        });
-                      },
-                      items: ['All', 'Breakfast', 'Lunch', 'Dinner', 'Snack']
-                          .map((mealType) {
-                        return DropdownMenuItem<String>(
-                          value: mealType == 'All' ? null : mealType,
-                          child: Text(mealType),
-                        );
-                      }).toList(),
-                    ),
+
+                    // SizedBox.shrink(),
                   ],
+                ),
+                SizedBox(
+                  height: 10,
                 ),
                 Expanded(
                   child: ListView.builder(
@@ -243,6 +344,7 @@ class _RecipeListScreenState extends State<RecipeListScreen> {
                         onTap: () =>
                             _showRecipeDetails(context, filteredRecipes[index]),
                         child: Card(
+                          color: Color(0xFFFFF8E1), // Light yellow
                           child: ListTile(
                             title: Text(filteredRecipes[index].name),
                             leading: filteredRecipes[index].image.isNotEmpty
@@ -303,6 +405,7 @@ class FavoritesScreen extends StatelessWidget {
               itemCount: favoriteRecipes.length,
               itemBuilder: (BuildContext context, int index) {
                 return Card(
+                  color: Color(0xFFFFF8E1), // Light yellow
                   child: ListTile(
                     title: Text(favoriteRecipes[index].name),
                     // subtitle: Text('ID: ${favoriteRecipes[index].id}'),
@@ -338,14 +441,54 @@ class RecipeDetailsScreen extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Prep Time: ${recipe.prepTimeMinutes} minutes',
-                style: TextStyle(fontWeight: FontWeight.bold)),
-            Text('Cook Time: ${recipe.cookTimeMinutes} minutes',
-                style: TextStyle(fontWeight: FontWeight.bold)),
-            Text('Servings: ${recipe.servings}',
-                style: TextStyle(fontWeight: FontWeight.bold)),
-            Text('Difficulty: ${recipe.difficulty}',
-                style: TextStyle(fontWeight: FontWeight.bold)),
+            Row(
+              children: [
+                Text(
+                  'Prep Time: ',
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
+                Text(
+                  '${recipe.prepTimeMinutes} minutes',
+                  style: TextStyle(fontWeight: FontWeight.normal),
+                ),
+              ],
+            ),
+            Row(
+              children: [
+                Text(
+                  'Cook Time: ',
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
+                Text(
+                  '${recipe.cookTimeMinutes} minutes',
+                  style: TextStyle(fontWeight: FontWeight.normal),
+                ),
+              ],
+            ),
+            Row(
+              children: [
+                Text(
+                  'Servings: ',
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
+                Text(
+                  '${recipe.servings}',
+                  style: TextStyle(fontWeight: FontWeight.normal),
+                ),
+              ],
+            ),
+            Row(
+              children: [
+                Text(
+                  'Difficulty: ',
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
+                Text(
+                  '${recipe.difficulty}',
+                  style: TextStyle(fontWeight: FontWeight.normal),
+                ),
+              ],
+            ),
             SizedBox(height: 16.0),
             Text('Ingredients:', style: TextStyle(fontWeight: FontWeight.bold)),
             for (String ingredient in recipe.ingredients) Text(ingredient),
